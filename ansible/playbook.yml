@@ -4,7 +4,7 @@
   connection: local
   gather_facts: false
   vars:
-    lambda_name: "img2pdf-converter"
+    lambda_name: "ynov-img2pdf-converter"
     src_dir: "src"
     build_dir: "build"
     zip_file: "lambda_updated.zip"
