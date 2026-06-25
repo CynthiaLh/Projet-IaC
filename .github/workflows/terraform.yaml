@@ -12,6 +12,9 @@ jobs:
   terraform-and-ansible-checks:
     name: Terraform & Ansible CI
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
     
     env:
       AWS_REGION: "eu-west-1"
@@ -63,10 +66,20 @@ jobs:
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      - name: Run Infracost
+      - name: Generate Infracost estimate
         run: |
+          # Affiche le résumé dans les logs
           infracost breakdown --path terraform/ --show-skipped
-        # Use soft fail or don't exit if missing api key for now, as it's a student project
+          # Génère le fichier JSON pour le commentaire PR
+          infracost breakdown --path terraform/ --format json --out-file /tmp/infracost.json
+        continue-on-error: true
+
+      - name: Post Infracost comment
+        if: github.event_name == 'pull_request'
+        uses: infracost/actions/comment@v3
+        with:
+          path: /tmp/infracost.json
+          behavior: update
         continue-on-error: true
 
       - name: Set up Python
