@@ -61,12 +61,12 @@ resource "aws_lambda_function" "img2pdf" {
   function_name = "img2pdf-converter"
   role          = aws_iam_role.lambda_role.arn
   handler       = "handler.lambda_handler"
-  
+
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
   runtime = "python3.11"
   timeout = 30
-  
+
   environment {
     variables = {
       DEST_BUCKET = var.destination_bucket_id
