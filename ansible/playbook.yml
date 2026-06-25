@@ -1,0 +1,48 @@
+---
+- name: Update Lambda Function Source Code
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    lambda_name: "img2pdf-converter"
+    src_dir: "src"
+    build_dir: "build"
+    zip_file: "lambda_updated.zip"
+
+  tasks:
+    - name: Create build directory
+      ansible.builtin.file:
+        path: "{{ build_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Install dependencies
+      ansible.builtin.pip:
+        requirements: "{{ src_dir }}/requirements.txt"
+        target: "{{ build_dir }}"
+      
+    - name: Copy handler to build directory
+      ansible.builtin.copy:
+        src: "{{ src_dir }}/handler.py"
+        dest: "{{ build_dir }}/handler.py"
+
+    - name: Zip the build directory
+      community.general.archive:
+        path: "{{ build_dir }}/*"
+        dest: "{{ zip_file }}"
+        format: zip
+
+    - name: Update Lambda code
+      amazon.aws.lambda:
+        name: "{{ lambda_name }}"
+        state: present
+        zip_file: "{{ zip_file }}"
+        # Make sure to not overwrite role/handler configuration, just the code
+      
+    - name: Clean up build artifacts
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ build_dir }}"
+        - "{{ zip_file }}"
