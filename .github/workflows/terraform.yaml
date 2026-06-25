@@ -72,6 +72,9 @@ jobs:
           infracost breakdown --path terraform/ --show-skipped
           # Génère le fichier JSON pour le commentaire PR
           infracost breakdown --path terraform/ --format json --out-file /tmp/infracost.json
+          # Ajoute le rapport au "Job Summary" de GitHub Actions pour qu'il soit visible sur la page principale
+          echo "### 💰 Rapport Infracost" >> $GITHUB_STEP_SUMMARY
+          infracost breakdown --path terraform/ --format github-comment >> $GITHUB_STEP_SUMMARY
         continue-on-error: true
 
       - name: Post Infracost comment
