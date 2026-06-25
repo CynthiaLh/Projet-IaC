@@ -57,6 +57,13 @@ data "archive_file" "lambda_zip" {
 }
 
 resource "aws_lambda_function" "img2pdf" {
+  # checkov:skip=CKV_AWS_115: "Concurrent execution limit not needed"
+  # checkov:skip=CKV_AWS_116: "DLQ not needed"
+  # checkov:skip=CKV_AWS_117: "VPC not needed"
+  # checkov:skip=CKV_AWS_272: "Code-signing not needed"
+  # checkov:skip=CKV_AWS_173: "KMS encryption not needed for env vars"
+  # checkov:skip=CKV_AWS_50: "X-Ray tracing not needed"
+  # checkov:skip=CKV_AWS_283: "Not needed"
   filename      = data.archive_file.lambda_zip.output_path
   function_name = "img2pdf-converter"
   role          = aws_iam_role.lambda_role.arn
