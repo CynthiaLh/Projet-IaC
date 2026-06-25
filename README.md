@@ -6,6 +6,7 @@ Ce projet met en place l'infrastructure demandée, qui comprend :
 - Un déclencheur (trigger) S3 qui exécute la Lambda à l'upload d'une image dans le bucket source.
 - Un playbook Ansible pour mettre à jour le code de la Lambda.
 - Un pipeline CI/CD GitHub Actions effectuant des vérifications (fmt, validate, plan, Checkov, Infracost, ansible-lint).
+- Le rapport des coûts (Infracost) s'affiche automatiquement en commentaire sur les Pull Requests.
 
 > **Note** : Nous avons bien appliqué le tag obligatoire `Project = "ynov-iac-2026"` sur toutes nos ressources Terraform.
 
