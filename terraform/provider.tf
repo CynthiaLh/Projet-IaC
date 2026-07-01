@@ -13,7 +13,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-west-1" # Can be overriden
+  region = "eu-west-1"
   default_tags {
     tags = {
       Project = "ynov-iac-2026"

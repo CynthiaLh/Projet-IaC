@@ -20,5 +20,5 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
     events              = ["s3:ObjectCreated:*"]
   }
 
-  depends_on = [module.lambda] # Wait for lambda permissions
+  depends_on = [module.lambda]
 }
