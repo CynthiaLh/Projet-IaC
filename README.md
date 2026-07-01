@@ -17,6 +17,14 @@ Ce projet met en place l'infrastructure demandée, qui comprend :
 - `.github/workflows/` : Pipeline CI/CD GitHub Actions.
 - `ynov-student_accessKeys.csv` a été explicitement ignoré via le fichier `.gitignore` afin de ne jamais exposer nos identifiants sur GitHub.
 
+## Prérequis
+
+Pour déployer et exécuter ce projet localement, les outils suivants sont nécessaires :
+- **Terraform** (v1.8+)
+- **Ansible**
+- **AWS CLI** (installé)
+- **Python 3.x**
+
 ## Déploiement
 
 ### 1. Terraform (Infrastructure initiale)
@@ -40,7 +48,7 @@ terraform apply
 
 ### 2. Ansible (Mise à jour du code Lambda)
 
-Notre playbook Ansible se charge d'installer les dépendances (ex: `fpdf2`), de packager le code, puis de mettre à jour notre Lambda.
+Notre playbook Ansible se charge d'installer les dépendances requises (notamment `fpdf2` pour la génération du PDF), de packager le code (`handler.py`) et ses dépendances dans une archive `.zip`, puis de mettre à jour la fonction Lambda avec ce nouveau package.
 
 ```bash
 cd ansible
