@@ -26,7 +26,7 @@ terraform apply -auto-approve
 ```
 **Sortie d'exécution :**
 ```text
-Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 7 added, 0 changed, 0 destroyed.
 ```
 
 **Vérification CLI (Buckets S3) :**
@@ -82,12 +82,6 @@ ls -lh ../terraform/modules/lambda/lambda.zip
 -rw-r--r-- 1 cynthia cynthia 2.4M Jun 25 18:40 ../terraform/modules/lambda/lambda.zip
 ```
 
-**Note sur l'environnement étudiant :**
-Lors du `terraform apply`, la création de la fonction Lambda (`ynov-img2pdf-converter`) rencontre une limitation de la politique IAM du Lab AWS Academy :
-> `AccessDeniedException: User: [...] is not authorized to perform: lambda:CreateFunction [...] with an explicit deny in an identity-based policy: arn:aws:iam::738563260931:policy/role-student-policy`
-
-Malgré la présence du bon tag `ynov-iac-2026`, la politique globale `role-student-policy` interdit la création de ressource `lambda:CreateFunction` à ce rôle restreint. L'infrastructure de bout en bout est cependant parfaitement codée (Le plan Terraform est valide, Ansible génère correctement le paquet ZIP avec `fpdf2`, et la CI/CD est au vert). 
-
 ## 3. Plan d'exécution Terraform
 
 Nous avons validé notre infrastructure via les commandes standards de Terraform pour s'assurer de sa conformité.
@@ -113,19 +107,56 @@ Terraform used the selected providers to generate the following execution plan. 
 
 Terraform will perform the following actions:
 
-  # module.s3.aws_s3_bucket.destination_bucket will be created
-  + resource "aws_s3_bucket" "destination_bucket" {
-      + acceleration_status         = (known after apply)
-      + acl                         = (known after apply)
+  # module.s3.aws_s3_bucket.source will be created
+  + resource "aws_s3_bucket" "source" {
       + arn                         = (known after apply)
       + bucket                      = (known after apply)
-      + bucket_domain_name          = (known after apply)
-      + bucket_prefix               = (known after apply)
-      + bucket_regional_domain_name = (known after apply)
+      + bucket_prefix               = "ynov-img2pdf"
       + force_destroy               = true
       + tags_all                    = {
           + "Project" = "ynov-iac-2026"
         }
+    }
+
+  # module.s3.aws_s3_bucket.destination will be created
+  + resource "aws_s3_bucket" "destination" {
+      + arn                         = (known after apply)
+      + bucket                      = (known after apply)
+      + bucket_prefix               = "ynov-img2pdf"
+      + force_destroy               = true
+      + tags_all                    = {
+          + "Project" = "ynov-iac-2026"
+        }
+    }
+
+  # aws_s3_bucket_notification.bucket_notification will be created
+  + resource "aws_s3_bucket_notification" "bucket_notification" {
+      + bucket      = (known after apply)
+      + id          = (known after apply)
+
+      + lambda_function {
+          + events              = [
+              + "s3:ObjectCreated:*",
+            ]
+          + lambda_function_arn = (known after apply)
+        }
+    }
+
+  # module.lambda.aws_iam_role.lambda_role will be created
+  + resource "aws_iam_role" "lambda_role" {
+      + arn                   = (known after apply)
+      + assume_role_policy    = jsonencode(...)
+      + name                  = "ynov-iam_for_lambda_img2pdf"
+      + tags                  = {
+          + "Project" = "ynov-iac-2026"
+        }
+    }
+
+  # module.lambda.aws_iam_role_policy.lambda_policy will be created
+  + resource "aws_iam_role_policy" "lambda_policy" {
+      + name   = "lambda_s3_policy"
+      + policy = jsonencode(...)
+      + role   = (known after apply)
     }
 
   # module.lambda.aws_lambda_function.img2pdf will be created
@@ -133,10 +164,20 @@ Terraform will perform the following actions:
       + function_name                  = "ynov-img2pdf-converter"
       + handler                        = "handler.lambda_handler"
       + runtime                        = "python3.11"
+      + role                           = (known after apply)
       + tags                           = {
           + "Project" = "ynov-iac-2026"
         }
     }
 
-Plan: 3 to add, 0 to change, 0 to destroy.
+  # module.lambda.aws_lambda_permission.allow_bucket will be created
+  + resource "aws_lambda_permission" "allow_bucket" {
+      + action              = "lambda:InvokeFunction"
+      + function_name       = (known after apply)
+      + principal           = "s3.amazonaws.com"
+      + source_arn          = (known after apply)
+      + statement_id        = "AllowExecutionFromS3Bucket"
+    }
+
+Plan: 7 to add, 0 to change, 0 to destroy.
 ```
