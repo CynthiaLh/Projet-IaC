@@ -1,3 +1,59 @@
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "lambda_role" {
+  name               = "ynov-iam_for_lambda_img2pdf"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+  
+  tags = {
+    Project = "ynov-iac-2026"
+  }
+}
+
+data "aws_iam_policy_document" "lambda_policy" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources = ["arn:aws:logs:*:*:*"]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:GetObject"
+    ]
+    resources = ["${var.source_bucket_arn}/*"]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:PutObject"
+    ]
+    resources = ["${var.destination_bucket_arn}/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_policy" {
+  name   = "lambda_s3_policy"
+  role   = aws_iam_role.lambda_role.id
+  policy = data.aws_iam_policy_document.lambda_policy.json
+}
+
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_file = "${path.module}/src/handler.py"
@@ -14,7 +70,7 @@ resource "aws_lambda_function" "img2pdf" {
   # checkov:skip=CKV_AWS_283: "Not needed"
   filename      = data.archive_file.lambda_zip.output_path
   function_name = "ynov-img2pdf-converter"
-  role          = "arn:aws:iam::738563260931:role/role_etudiants"
+  role          = aws_iam_role.lambda_role.arn
   handler       = "handler.lambda_handler"
 
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
