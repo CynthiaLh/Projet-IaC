@@ -5,7 +5,7 @@ Ce projet met en place l'infrastructure demandée, qui comprend :
 - Une fonction Lambda qui convertit une image en PDF.
 - Un déclencheur (trigger) S3 qui exécute la Lambda à l'upload d'une image dans le bucket source.
 - Un playbook Ansible pour mettre à jour le code de la Lambda.
-- Un pipeline CI/CD GitHub Actions effectuant des vérifications (fmt, validate, plan, Checkov, Infracost, ansible-lint).
+- Un pipeline CI/CD GitHub Actions effectuant des vérifications (fmt, validate, Checkov, Infracost, ansible-lint) et le déploiement continu (plan, apply).
 - Le rapport des coûts (Infracost) s'affiche automatiquement en commentaire sur les Pull Requests.
 
 > **Note** : Nous avons bien appliqué le tag obligatoire `Project = "ynov-iac-2026"` sur toutes nos ressources Terraform.
@@ -29,7 +29,7 @@ Nous exécutons cette commande pour charger nos accès AWS temporaires dans notr
 source assume_role.sh
 ```
 
-Ensuite, nous déployons notre infrastructure Terraform (qui utilise un backend distant S3 pour sécuriser le \`terraform.tfstate\`) :
+Ensuite, nous déployons notre infrastructure Terraform (qui utilise un backend distant S3 pour sécuriser le `terraform.tfstate`) :
 
 ```bash
 cd terraform
@@ -62,7 +62,7 @@ aws s3 ls s3://ynov-img2pdf-dest-<id>/
 ### 4. GitHub Actions (CI/CD)
 
 Le fichier `.github/workflows/terraform.yaml` inclut l'intégration et le déploiement continu.
-**Règles de sécurité :** Nous n'avons ajouté **aucun secret** dans le code. Les accès à AWS s'appuient sur l'action officielle \`aws-actions/configure-aws-credentials\` pour assumer notre rôle de manière sécurisée. L'API Key pour Infracost et les clés AWS sont configurées via les **GitHub Secrets** du dépôt :
+**Règles de sécurité :** Nous n'avons ajouté **aucun secret** dans le code. Les accès à AWS s'appuient sur l'action officielle `aws-actions/configure-aws-credentials` pour assumer notre rôle de manière sécurisée. L'API Key pour Infracost et les clés AWS sont configurées via les **GitHub Secrets** du dépôt :
 1. Dans les **Settings** du dépôt > **Secrets and variables** > **Actions**.
 2. Nous avons défini les secrets suivants :
    - `AWS_ACCESS_KEY_ID`

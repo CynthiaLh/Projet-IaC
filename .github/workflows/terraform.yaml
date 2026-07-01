@@ -50,8 +50,8 @@ jobs:
         run: terraform validate
         working-directory: ./terraform
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+      - name: Terraform Plan
+        run: terraform plan
         working-directory: ./terraform
 
       - name: Run Checkov
@@ -105,8 +105,7 @@ jobs:
         run: ansible-lint ansible/playbook.yml
         continue-on-error: true
 
-      - name: Terraform Plan
-        run: terraform plan
+      - name: Terraform Apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve
         working-directory: ./terraform
-        # Only succeeds if AWS credentials are provided
-        continue-on-error: true
