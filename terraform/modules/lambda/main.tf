@@ -14,7 +14,7 @@ data "aws_iam_policy_document" "assume_role" {
 resource "aws_iam_role" "lambda_role" {
   name               = "ynov-iam_for_lambda_img2pdf"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
-  
+
   tags = {
     Project = "ynov-iac-2026"
   }
