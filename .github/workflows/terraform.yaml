@@ -15,7 +15,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
-    
+
     env:
       AWS_REGION: "eu-west-1"
 
@@ -50,6 +50,10 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
+        working-directory: ./terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
         working-directory: ./terraform
 
       - name: Run Checkov
