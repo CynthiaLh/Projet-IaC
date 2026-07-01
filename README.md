@@ -29,7 +29,7 @@ Nous exécutons cette commande pour charger nos accès AWS temporaires dans notr
 source assume_role.sh
 ```
 
-Ensuite, nous déployons notre infrastructure Terraform :
+Ensuite, nous déployons notre infrastructure Terraform (qui utilise un backend distant S3 pour sécuriser le \`terraform.tfstate\`) :
 
 ```bash
 cd terraform
@@ -62,7 +62,7 @@ aws s3 ls s3://ynov-img2pdf-dest-<id>/
 ### 4. GitHub Actions (CI/CD)
 
 Le fichier `.github/workflows/terraform.yaml` inclut l'intégration et le déploiement continu.
-**Règles de sécurité :** Nous n'avons ajouté **aucun secret** dans le code. Les accès à AWS et l'API Key pour Infracost sont configurés via les **GitHub Secrets** du dépôt :
+**Règles de sécurité :** Nous n'avons ajouté **aucun secret** dans le code. Les accès à AWS s'appuient sur l'action officielle \`aws-actions/configure-aws-credentials\` pour assumer notre rôle de manière sécurisée. L'API Key pour Infracost et les clés AWS sont configurées via les **GitHub Secrets** du dépôt :
 1. Dans les **Settings** du dépôt > **Secrets and variables** > **Actions**.
 2. Nous avons défini les secrets suivants :
    - `AWS_ACCESS_KEY_ID`

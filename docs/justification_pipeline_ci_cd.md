@@ -21,7 +21,7 @@ L'ordre séquentiel des étapes n'est pas arbitraire :
 2. **Analyse Statique et Validation** (Formatage, initialisation, validation Terraform).
 3. **Audits et Conformité** (Sécurité avec Checkov, FinOps avec Infracost).
 4. **Tests de Configuration** (Linting Ansible).
-5. **Projection** (Terraform Plan).
+5. **Projection et Déploiement** (Terraform Plan, Terraform Apply).
 
 ## 2. Justification Détaillée des Outils
 
@@ -29,9 +29,13 @@ L'ordre séquentiel des étapes n'est pas arbitraire :
 * **Rôle** : Récupérer le code source du dépôt dans l'environnement d'exécution (runner).
 * **Justification** : C'est la base indispensable de toute CI/CD. La version `v4` a été choisie pour ses optimisations de performance de clone et son exécution sous Node 20.
 
-### Authentification AWS (STS Assume Role CLI)
-* **Rôle** : Générer des identifiants AWS temporaires via `aws sts assume-role` en s'appuyant sur les secrets GitHub.
-* **Justification** : Le principe du moindre privilège. Plutôt que d'utiliser des credentials statiques de longue durée directement pour le déploiement, la pipeline assume un rôle spécifique (`role_etudiants`). Cela permet de limiter la portée temporelle des clés, réduisant considérablement la surface d'attaque en cas de fuite de la mémoire du runner.
+### Authentification AWS (`aws-actions/configure-aws-credentials@v4`)
+* **Rôle** : Configurer l'environnement AWS de manière sécurisée et assumer le rôle nécessaire au déploiement.
+* **Justification** : C'est la bonne pratique officielle (fournie par AWS). Plutôt que de scripter manuellement l'appel à `sts assume-role`, cette action gère automatiquement le masquage des secrets dans les logs, la rotation des variables d'environnement et l'expiration des tokens. Le fait d'assumer le rôle `role_etudiants` permet d'appliquer le principe du moindre privilège, réduisant la surface d'attaque en cas de compromission du runner.
+
+### Gestion de l'état (Remote Backend S3)
+* **Rôle** : Stocker le fichier `terraform.tfstate` de manière centralisée sur AWS S3.
+* **Justification** : Sans backend distant, le runner GitHub perdrait la connaissance de l'infrastructure déployée entre chaque exécution, entraînant des tentatives de recréation échouées lors de l'étape `apply`. L'utilisation d'un bucket S3 dédié (`ynov-iac-2026-tfstate-cynthia`) permet de maintenir la source de vérité unique, de sécuriser l'état de l'infrastructure, tout en excluant le fichier `.tfstate` du suivi Git.
 
 ### `hashicorp/setup-terraform@v3`
 * **Rôle** : Installer une version précise du binaire Terraform (`1.8.0`).
@@ -42,6 +46,7 @@ L'ordre séquentiel des étapes n'est pas arbitraire :
 * **`terraform init`** : Prépare l'espace de travail en téléchargeant fournisseurs et modules. Indispensable pour la suite.
 * **`terraform validate`** : Vérifie l'intégrité syntaxique et les références croisées. Résout le problème des erreurs de dépendances (ex: appeler un output inexistant) avant de dialoguer avec l'API AWS.
 * **`terraform plan`** : Offre une projection de l'état futur de l'infrastructure. Permet au relecteur de la Pull Request de comprendre l'impact physique (Création/Modification/Destruction) du code proposé.
+* **`terraform apply`** : Applique de manière automatisée les changements d'infrastructure, garantissant que l'état déployé correspond exactement au code versionné sur la branche principale (Déploiement Continu).
 
 ### Checkov
 * **Rôle** : Analyse Statique de Sécurité (SAST) appliquée à l'IaC.
@@ -90,9 +95,9 @@ La pipeline honore de multiples piliers DevOps :
 
 Bien que robuste, l'architecture actuelle offre des marges de progression pour atteindre le standard "State of the Art" :
 
-1. **Authentification OIDC (OpenID Connect) vs IAM User** :
-   * **Constat** : Le script utilise `aws sts assume-role`, nécessitant tout de même de stocker des clés statiques d'IAM User dans GitHub Secrets.
-   * **Amélioration** : Remplacer ceci par l'action `aws-actions/configure-aws-credentials` en configurant OIDC (OpenID Connect) entre GitHub et AWS. Cela permettrait de supprimer totalement les secrets AWS de GitHub, la confiance se faisant de manière cryptographique entre les fournisseurs d'identité.
+1. **Authentification OIDC (OpenID Connect) pure** :
+   * **Constat** : Bien que nous utilisions désormais l'action propre `aws-actions/configure-aws-credentials`, nous l'alimentons toujours avec des clés statiques (`AWS_ACCESS_KEY_ID`) stockées dans les GitHub Secrets.
+   * **Amélioration** : Configurer la fédération d'identité OIDC (OpenID Connect) entre GitHub et AWS. Cela permettrait de supprimer totalement les secrets AWS statiques du dépôt GitHub. L'authentification se ferait de manière purement cryptographique via des tokens éphémères générés à la volée.
 
 2. **Permissivité de l'Assurance Qualité (`continue-on-error: true`)** :
    * **Constat** : Les étapes d'audit comme Checkov (`soft_fail: true`), Ansible Lint et Infracost ont le droit d'échouer sans faire planter la pipeline globale.
